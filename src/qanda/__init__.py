@@ -3,6 +3,9 @@ from flask import Flask
 from qanda.config import Config
 from qanda.extensions import db, login_manager
 from qanda.web.auth import auth_bp
+# imports for admin access
+from qanda.web.admin import bp as admin_bp
+from qanda.commands import create_admin
 
 
 def create_app(config_class=Config):
@@ -30,3 +33,7 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 app.register_blueprint(auth_bp)
+
+# blueprints for admin access
+app.register_blueprint(admin_bp)
+app.cli.add_command(create_admin)
