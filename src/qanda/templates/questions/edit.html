@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Editar pregunta{% endblock %}
+
+{% block content %}
+<h1>Editar pregunta</h1>
+
+{% set submit_label = "Guardar cambios" %}
+<form method="post" action="{{ url_for('questions.edit_question', question_id=question.id) }}">
+  {% include "questions/_form.html" %}
+</form>
+<p><a href="{{ url_for('questions.question_detail', question_id=question.id) }}">Volver a la pregunta</a></p>
+{% endblock %}
