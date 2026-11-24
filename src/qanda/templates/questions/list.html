@@ -11,7 +11,7 @@
         <a href="{{ url_for('questions.question_detail', question_id=question.id) }}">
           {{ question.title }}
         </a>
-        <small>publicada el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
+        <small>{{ question.category.value }} · publicada el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
       </li>
     {% endfor %}
   </ul>

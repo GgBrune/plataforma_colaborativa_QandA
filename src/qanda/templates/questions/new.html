@@ -18,6 +18,16 @@
               maxlength="{{ question_description_max }}">{{ description }}</textarea>
     {% if errors.description %}<span class="error" role="alert">{{ errors.description }}</span>{% endif %}
   </p>
+  <p>
+    <label for="category">Categoría</label>
+    <select id="category" name="category" required>
+      <option value="" disabled {% if not category %}selected{% endif %}>Seleccioná una categoría</option>
+      {% for value, label in categories %}
+        <option value="{{ value }}" {% if category == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if errors.category %}<span class="error" role="alert">{{ errors.category }}</span>{% endif %}
+  </p>
   <button type="submit">Publicar</button>
 </form>
 {% endblock %}
