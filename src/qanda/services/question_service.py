@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from qanda.extensions import db
-from qanda.models import Question
+from qanda.models import Category, Question
 
 
 @dataclass
@@ -15,12 +15,13 @@ class QuestionValidationError(ValueError):
 
 
 def validate_question(
-    title: str, description: str
+    title: str, description: str, category: str
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Normaliza los datos y devuelve los errores de validación encontrados."""
     cleaned = {
         "title": title.strip() if isinstance(title, str) else "",
         "description": description.strip() if isinstance(description, str) else "",
+        "category": category.strip() if isinstance(category, str) else "",
     }
 
     errors: dict[str, str] = {}
@@ -39,17 +40,32 @@ def validate_question(
             f"{Question.DESCRIPTION_MAX_LENGTH} caracteres."
         )
 
+    try:
+        cleaned["category"] = Category(cleaned["category"])
+    except ValueError:
+        options = ", ".join(member.value for member in Category)
+        errors["category"] = (
+            "La categoría es obligatoria."
+            if not cleaned["category"]
+            else f"Categoría no válida. Las opciones son: {options}."
+        )
+
     return cleaned, errors
 
 
-def publish_question(title: str, description: str, author) -> Question:
+def publish_question(
+    title: str, description: str, category: str, author
+) -> Question:
     """Valida y persiste una pregunta, asignando automáticamente su fecha de publicación."""
-    cleaned, errors = validate_question(title, description)
+    cleaned, errors = validate_question(title, description, category)
     if errors:
         raise QuestionValidationError(errors)
 
     question = Question(
-        title=cleaned["title"], description=cleaned["description"], author=author
+        title=cleaned["title"],
+        description=cleaned["description"],
+        category=cleaned["category"],
+        author=author,
     )
     db.session.add(question)
     db.session.commit()
