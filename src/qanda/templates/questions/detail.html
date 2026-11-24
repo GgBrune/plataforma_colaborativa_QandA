@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ question.title }}{% endblock %}
+
+{% block content %}
+<article>
+  <h1>{{ question.title }}</h1>
+  <p><small>Publicada por {{ question.author.email }}
+       el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small></p>
+  <p>{{ question.description }}</p>
+</article>
+{% endblock %}

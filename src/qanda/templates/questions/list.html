@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Preguntas{% endblock %}
+
+{% block content %}
+<h1>Preguntas</h1>
+{% if questions %}
+  <ul>
+    {% for question in questions %}
+      <li>
+        <a href="{{ url_for('questions.question_detail', question_id=question.id) }}">
+          {{ question.title }}
+        </a>
+        <small>publicada el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Todavía no hay preguntas publicadas.</p>
+{% endif %}
+{% endblock %}
