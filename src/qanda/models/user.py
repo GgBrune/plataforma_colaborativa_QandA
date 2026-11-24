@@ -12,6 +12,8 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(30), nullable=False) # var del rol de usuario
 
+    questions = db.relationship("Question", back_populates="author", cascade="all, delete-orphan")
+
     __mapper_args__ = {"polymorphic_on": role}
 
     @property
