@@ -20,7 +20,7 @@ def login():
             return render_template("auth/login.html"), 401
 
         login_user(user)
-        return redirect(url_for("health.health"))  # cambiar por la página principal
+        return redirect(url_for("questions.list_questions"))
 
     return render_template("auth/login.html")
 
