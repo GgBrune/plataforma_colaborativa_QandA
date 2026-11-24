@@ -7,6 +7,7 @@
   <h1>{{ question.title }}</h1>
   <p><small>Publicada por {{ question.author.email }}
        el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small></p>
+  <p><strong>Categoría:</strong> {{ question.category.value }}</p>
   <p>{{ question.description }}</p>
 </article>
 {% endblock %}
