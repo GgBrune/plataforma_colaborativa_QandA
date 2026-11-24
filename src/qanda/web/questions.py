@@ -2,7 +2,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user, login_required
 
 from qanda.extensions import db
-from qanda.models import Question
+from qanda.models import Category, Question
 from qanda.services.question_service import QuestionValidationError, publish_question
 
 questions_bp = Blueprint("questions", __name__, url_prefix="/preguntas")
@@ -16,11 +16,13 @@ def list_questions():
     return render_template("questions/list.html", questions=questions)
 
 
-def _render_form(title="", description="", errors=None):
+def _render_form(title="", description="", category="", errors=None):
     return render_template(
         "questions/new.html",
         title=title,
         description=description,
+        category=category,
+        categories=Category.choices(),
         errors=errors or {},
         question_title_max=Question.TITLE_MAX_LENGTH,
         question_description_max=Question.DESCRIPTION_MAX_LENGTH,
@@ -33,12 +35,13 @@ def new_question():
     if request.method == "POST":
         title = request.form.get("title", "")
         description = request.form.get("description", "")
+        category = request.form.get("category", "")
         try:
             question = publish_question(
-                title, description, current_user._get_current_object()
+                title, description, category, current_user._get_current_object()
             )
         except QuestionValidationError as exc:
-            return _render_form(title, description, exc.errors), 400
+            return _render_form(title, description, category, exc.errors), 400
 
         flash("Tu pregunta se publicó correctamente.", "success")
         return redirect(url_for("questions.question_detail", question_id=question.id))
