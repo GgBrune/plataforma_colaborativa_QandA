@@ -12,6 +12,9 @@
           {{ question.title }}
         </a>
         <small>{{ question.category.value }} · publicada el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
+        {% if question.tags %}
+          <small>Etiquetas: {{ question.tags | map(attribute='name') | join(', ') }}</small>
+        {% endif %}
       </li>
     {% endfor %}
   </ul>

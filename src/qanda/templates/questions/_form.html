@@ -1,0 +1,31 @@
+  <p>
+    <label for="title">Título</label>
+    <input id="title" name="title" type="text" required
+           maxlength="{{ question_title_max }}" value="{{ title }}">
+    {% if errors.title %}<span class="error" role="alert">{{ errors.title }}</span>{% endif %}
+  </p>
+  <p>
+    <label for="description">Descripción</label>
+    <textarea id="description" name="description" rows="8" required
+              maxlength="{{ question_description_max }}">{{ description }}</textarea>
+    {% if errors.description %}<span class="error" role="alert">{{ errors.description }}</span>{% endif %}
+  </p>
+  <p>
+    <label for="category">Categoría</label>
+    <select id="category" name="category" required>
+      <option value="" disabled {% if not category %}selected{% endif %}>Seleccioná una categoría</option>
+      {% for value, label in categories %}
+        <option value="{{ value }}" {% if category == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if errors.category %}<span class="error" role="alert">{{ errors.category }}</span>{% endif %}
+  </p>
+  <p>
+    <label for="tags">Etiquetas</label>
+    <input id="tags" name="tags" type="text"
+           value="{{ tags }}" placeholder="Ej.: python, flask, bases de datos">
+    <small>Separá las etiquetas con comas. Podés agregar o quitar las que quieras;
+           cada etiqueta puede tener hasta {{ tag_name_max }} caracteres.</small>
+    {% if errors.tags %}<span class="error" role="alert">{{ errors.tags }}</span>{% endif %}
+  </p>
+  <button type="submit">{{ submit_label }}</button>

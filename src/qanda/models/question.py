@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from qanda.extensions import db
+from qanda.models.tag import question_tags
 
 
 class Category(str, Enum):
@@ -44,6 +45,12 @@ class Question(db.Model):
     )
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     author = db.relationship("User", back_populates="questions")
+    tags = db.relationship(
+        "Tag",
+        secondary=question_tags,
+        back_populates="questions",
+        order_by="Tag.name",
+    )
 
     def __repr__(self):
         return f"<Question {self.title!r}>"
