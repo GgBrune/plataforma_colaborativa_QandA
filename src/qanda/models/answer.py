@@ -22,5 +22,9 @@ class Answer(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     author = db.relationship("User", back_populates="answers")
 
+    @property
+    def is_automatic(self):
+        return self.author.is_agent
+
     def __repr__(self):
         return f"<Answer {self.id} to question {self.question_id}>"

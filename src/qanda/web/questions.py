@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from qanda.extensions import db
 from qanda.models import Question
+from qanda.services.agent_service import maybe_generate_answer
 from qanda.services.answer_service import AnswerValidationError, publish_answer
 from qanda.services.question_service import QuestionValidationError, publish_question
 from qanda.models import Category, Question, Tag
@@ -150,6 +151,14 @@ def _submitted_tags():
     return ", ".join(value for value in request.form.getlist("tags") if value)
 
 
+def _try_generate_agent_answer(question):
+    try:
+        maybe_generate_answer(question)
+    except Exception as exc:  # noqa: BLE001 - un fallo del agente no bloquea la publicación
+        db.session.rollback()
+        flash(f"El agente no pudo generar una respuesta automática: {exc}", "error")
+
+
 @questions_bp.route("/nueva", methods=["GET", "POST"])
 @login_required
 def new_question():
@@ -176,6 +185,7 @@ def new_question():
             ), 400
 
         flash("Tu pregunta se publicó correctamente.", "success")
+        _try_generate_agent_answer(question)
         return redirect(url_for("questions.question_detail", question_id=question.id))
 
     return _render_form()
@@ -187,6 +197,9 @@ def _render_detail(question, errors=None, body=""):
         question=question,
         errors=errors or {},
         body=body,
+    )
+
+
 @questions_bp.route("/<int:question_id>/editar", methods=["GET", "POST"])
 @login_required
 def edit_question(question_id):
@@ -232,6 +245,7 @@ def question_detail(question_id):
     question = db.session.get(Question, question_id)
     if question is None:
         abort(404)
+    _try_generate_agent_answer(question)
     return _render_detail(question)
 
 

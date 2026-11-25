@@ -13,12 +13,17 @@ class User(db.Model, UserMixin):
     role = db.Column(db.String(30), nullable=False) # var del rol de usuario
 
     questions = db.relationship("Question", back_populates="author", cascade="all, delete-orphan")
+    answers = db.relationship("Answer", back_populates="author")
 
     __mapper_args__ = {"polymorphic_on": role}
 
     @property
     def is_admin(self):
         return self.role == "administrator"
+
+    @property
+    def is_agent(self):
+        return self.role == "automatic_agent"
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -31,5 +36,19 @@ class User(db.Model, UserMixin):
 
 class Administrator(User):
     __mapper_args__ = {"polymorphic_identity": "administrator"}
+
+
 class GeneralUser(User):
     __mapper_args__ = {"polymorphic_identity": "general_user"}
+
+
+class AutomaticAgent(User):
+    """Agente automático autor de las respuestas generadas por IA."""
+
+    __mapper_args__ = {"polymorphic_identity": "automatic_agent"}
+
+    def generate(self, prompt: str) -> str:
+        """Delega la generación del texto en el Strategy."""
+        from qanda.services.agent_service import get_strategy
+
+        return get_strategy().generate(prompt)
