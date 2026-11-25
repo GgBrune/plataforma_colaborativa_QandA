@@ -42,14 +42,95 @@ class GeminiStrategy(StrategyLLM):
         raise RuntimeError("Gemini no está configurado en este entorno.")
 
 
+# Proveedores disponibles. Las claves aceptan tanto el nombre del proveedor
+# como el de la clase concreta para que el formulario del admin sea flexible.
+STRATEGY_FACTORIES: dict[str, type[StrategyLLM]] = {
+    "local": LocalModelStrategy,
+    "localmodel": LocalModelStrategy,
+    "localmodelstrategy": LocalModelStrategy,
+    "openai": OpenAIStrategy,
+    "openaistrategy": OpenAIStrategy,
+    "gemini": GeminiStrategy,
+    "geministrategy": GeminiStrategy,
+}
+
+# Opciones canónicas del selector de la interfaz de administración.
+STRATEGY_CHOICES = (
+    ("local", "Local"),
+    ("openai", "OpenAI"),
+    ("gemini", "Gemini"),
+)
+
+# None significa "todavía no la cambiaron": en ese caso se respeta la variable
+# de entorno en cada lectura. Cuando el administrador elige una estrategia se
+# guarda acá y pasa a usarse en todas las generaciones posteriores.
+_current_strategy: StrategyLLM | None = None
+
+
+def build_strategy(provider: str | StrategyLLM) -> StrategyLLM:
+    """Crea la estrategia indicada por nombre o devuelve la instancia recibida."""
+    if not isinstance(provider, str):
+        if callable(getattr(provider, "generate", None)):
+            return provider
+        raise TypeError("La estrategia debe implementar generate(prompt).")
+
+    key = provider.strip().casefold()
+    strategy_class = STRATEGY_FACTORIES.get(key)
+    if strategy_class is None:
+        options = ", ".join(name for name, _ in STRATEGY_CHOICES)
+        raise ValueError(f"Estrategia desconocida: {provider!r}. Opciones: {options}.")
+    return strategy_class()
+
+
 def get_strategy() -> StrategyLLM:
-    """Devuelve la estrategia indicada por LLM_PROVIDER (local por defecto)."""
-    provider = os.getenv("LLM_PROVIDER", "local").casefold()
-    if provider == "openai":
-        return OpenAIStrategy()
-    if provider == "gemini":
-        return GeminiStrategy()
-    return LocalModelStrategy()
+    """Devuelve la estrategia vigente del agente.
+
+    Si el administrador no la cambió, se usa LLM_PROVIDER (local por defecto).
+    """
+    global _current_strategy
+    if _current_strategy is None:
+        _current_strategy = build_strategy(os.getenv("LLM_PROVIDER", "local"))
+    return _current_strategy
+
+
+def set_strategy(strategy: str | StrategyLLM) -> StrategyLLM:
+    """Cambia la estrategia del agente sin necesidad de reiniciar la app."""
+    global _current_strategy
+    _current_strategy = build_strategy(strategy)
+    return _current_strategy
+
+
+setStrategy = set_strategy
+
+
+def reset_strategy() -> None:
+    """Vuelve a la estrategia configurada por entorno (útil en tests)."""
+    global _current_strategy
+    _current_strategy = None
+
+
+def get_strategy_name() -> str:
+    """Nombre de la estrategia vigente, para mostrarla en el formulario."""
+    strategy = get_strategy()
+    for name, strategy_class in STRATEGY_FACTORIES.items():
+        if isinstance(strategy, strategy_class):
+            return name
+    return type(strategy).__name__
+
+
+def _agent_get_strategy(self) -> StrategyLLM:
+    return get_strategy()
+
+
+def _agent_set_strategy(self, strategy: str | StrategyLLM) -> StrategyLLM:
+    return set_strategy(strategy)
+
+
+# models/user.py no se modifica: el contexto Strategy se completa desde acá,
+# donde viven las estrategias concretas.
+AutomaticAgent.strategy = property(_agent_get_strategy, _agent_set_strategy)
+AutomaticAgent.setStrategy = _agent_set_strategy
+AutomaticAgent.set_strategy = _agent_set_strategy
 
 
 def build_prompt(question) -> str:
@@ -83,8 +164,7 @@ def generate_answer_for(question) -> Answer:
 
 def _has_trigger_tag(question) -> bool:
     return any(
-        tag.name.casefold().lstrip("#") == AGENT_TRIGGER_TAG
-        for tag in question.tags
+        tag.name.casefold().lstrip("#") == AGENT_TRIGGER_TAG for tag in question.tags
     )
 
 
