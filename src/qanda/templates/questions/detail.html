@@ -20,4 +20,37 @@
     <p><a href="{{ url_for('questions.edit_question', question_id=question.id) }}">Editar pregunta</a></p>
   {% endif %}
 </article>
+
+<section>
+  <h2>Respuestas ({{ question.answers|length }})</h2>
+
+  {% if question.answers %}
+    <ul>
+      {% for answer in question.answers|sort(attribute='published_at') %}
+        <li>
+          <p>{{ answer.body }}</p>
+          <small>{{ answer.author.email }} ·
+                 {{ answer.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Todavía no hay respuestas. ¡Sé el primero en colaborar!</p>
+  {% endif %}
+
+  {% if current_user.is_authenticated %}
+    <h3>Publicar una respuesta</h3>
+    <form method="post"
+          action="{{ url_for('questions.new_answer', question_id=question.id) }}">
+      <p>
+        <label for="body">Tu respuesta</label>
+        <textarea id="body" name="body" rows="5" required>{{ body }}</textarea>
+        {% if errors.body %}<span class="error" role="alert">{{ errors.body }}</span>{% endif %}
+      </p>
+      <button type="submit">Publicar respuesta</button>
+    </form>
+  {% else %}
+    <p><a href="{{ url_for('auth.login') }}">Iniciá sesión</a> para responder.</p>
+  {% endif %}
+</section>
 {% endblock %}

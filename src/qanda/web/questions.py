@@ -3,6 +3,9 @@ from flask_login import current_user, login_required
 from sqlalchemy.orm import selectinload
 
 from qanda.extensions import db
+from qanda.models import Question
+from qanda.services.answer_service import AnswerValidationError, publish_answer
+from qanda.services.question_service import QuestionValidationError, publish_question
 from qanda.models import Category, Question, Tag
 from qanda.services.question_service import (
     QuestionValidationError,
@@ -178,6 +181,12 @@ def new_question():
     return _render_form()
 
 
+def _render_detail(question, errors=None, body=""):
+    return render_template(
+        "questions/detail.html",
+        question=question,
+        errors=errors or {},
+        body=body,
 @questions_bp.route("/<int:question_id>/editar", methods=["GET", "POST"])
 @login_required
 def edit_question(question_id):
@@ -223,4 +232,21 @@ def question_detail(question_id):
     question = db.session.get(Question, question_id)
     if question is None:
         abort(404)
-    return render_template("questions/detail.html", question=question)
+    return _render_detail(question)
+
+
+@questions_bp.post("/<int:question_id>/respuestas")
+@login_required
+def new_answer(question_id):
+    question = db.session.get(Question, question_id)
+    if question is None:
+        abort(404)
+
+    body = request.form.get("body", "")
+    try:
+        publish_answer(body, question, current_user._get_current_object())
+    except AnswerValidationError as exc:
+        return _render_detail(question, exc.errors, body), 400
+
+    flash("Tu respuesta se publicó correctamente.", "success")
+    return redirect(url_for("questions.question_detail", question_id=question.id))
