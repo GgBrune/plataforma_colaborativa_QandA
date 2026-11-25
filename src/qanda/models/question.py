@@ -51,6 +51,7 @@ class Question(db.Model):
         back_populates="questions",
         order_by="Tag.name",
     )
+    answers = db.relationship("Answer", back_populates="question")
 
     def __repr__(self):
         return f"<Question {self.title!r}>"
