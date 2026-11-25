@@ -1,9 +1,12 @@
 """Respuestas automáticas generadas por un agente con patrón Strategy."""
 
+import json
 import os
 import secrets
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 from qanda.extensions import db
 from qanda.models import Answer, AutomaticAgent, User
@@ -12,6 +15,14 @@ from qanda.services.answer_service import publish_answer
 AGENT_EMAIL = "agente.automatico@qanda.local"
 AGENT_TRIGGER_TAG = os.getenv("AGENT_TRIGGER_TAG", "ia-help").casefold().lstrip("#")
 AGENT_DELAY_HOURS = float(os.getenv("AGENT_DELAY_HOURS", "24"))
+
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "gemini-1.5-flash:generateContent"
+)
+LOCAL_MODEL_URL_ENV = "LOCAL_MODEL_URL"
+LOCAL_MODEL_NAME_ENV = "LOCAL_MODEL_NAME"
 
 
 class StrategyLLM(ABC):
@@ -23,23 +34,85 @@ class StrategyLLM(ABC):
 
 
 class LocalModelStrategy(StrategyLLM):
-    """Estrategia que responde con un texto predefinido."""
+    """Consume un modelo local si se configura su URL; si no, texto fijo."""
+
+    def __init__(self, url: str | None = None, model: str | None = None):
+        self.url = url or os.getenv(LOCAL_MODEL_URL_ENV)
+        self.model = model or os.getenv(LOCAL_MODEL_NAME_ENV, "llama3")
 
     def generate(self, prompt: str) -> str:
-        return (
-            "Respuesta generada automáticamente por el agente de la plataforma. "
-            "Revisá la categoría y las etiquetas de la pregunta para obtener contexto."
+        if not self.url:
+            return (
+                "Respuesta generada automáticamente por el agente de la plataforma. "
+                "Revisá la categoría y las etiquetas de la pregunta para obtener contexto."
+            )
+        payload = {"model": self.model, "prompt": prompt, "stream": False}
+        request = Request(
+            self.url,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
         )
+        try:
+            with urlopen(request, timeout=30) as response:
+                data = json.load(response)
+            return data["response"]
+        except (URLError, KeyError, ValueError) as exc:
+            raise RuntimeError(f"Modelo local devolvió un error: {exc}") from exc
 
 
 class OpenAIStrategy(StrategyLLM):
+    """Consume la API de OpenAI con la clave del entorno."""
+
+    def __init__(self, api_key: str | None = None):
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+
     def generate(self, prompt: str) -> str:
-        raise RuntimeError("OpenAI no está configurado en este entorno.")
+        if not self.api_key:
+            raise RuntimeError("OPENAI_API_KEY no configurada.")
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        request = Request(
+            OPENAI_URL,
+            data=json.dumps(payload).encode(),
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with urlopen(request, timeout=30) as response:
+                data = json.load(response)
+            return data["choices"][0]["message"]["content"]
+        except (URLError, KeyError, ValueError) as exc:
+            raise RuntimeError(f"OpenAI devolvió un error: {exc}") from exc
 
 
 class GeminiStrategy(StrategyLLM):
+    """Consume la API de Gemini con la clave del entorno."""
+
+    def __init__(self, api_key: str | None = None):
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+
     def generate(self, prompt: str) -> str:
-        raise RuntimeError("Gemini no está configurado en este entorno.")
+        if not self.api_key:
+            raise RuntimeError("GEMINI_API_KEY no configurada.")
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        request = Request(
+            GEMINI_URL,
+            data=json.dumps(payload).encode(),
+            headers={
+                "x-goog-api-key": self.api_key,
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with urlopen(request, timeout=30) as response:
+                data = json.load(response)
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        except (URLError, KeyError, ValueError) as exc:
+            raise RuntimeError(f"Gemini devolvió un error: {exc}") from exc
 
 
 # Proveedores disponibles. Las claves aceptan tanto el nombre del proveedor
