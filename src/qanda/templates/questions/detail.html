@@ -29,7 +29,7 @@
       {% for answer in question.answers|sort(attribute='published_at') %}
         <li>
           <p>{{ answer.body }}</p>
-          <small>{{ answer.author.email }} ·
+          <small>{{ answer.author.email }}{% if answer.is_automatic %} · generada automáticamente{% endif %} ·
                  {{ answer.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
         </li>
       {% endfor %}
