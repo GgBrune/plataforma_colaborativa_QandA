@@ -7,7 +7,18 @@
   <h1>{{ question.title }}</h1>
   <p><small>Publicada por {{ question.author.email }}
        el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small></p>
+  <p><strong>Categoría:</strong> {{ question.category.value }}</p>
+  <p><strong>Etiquetas:</strong>
+    {% if question.tags %}
+      {% for tag in question.tags %}<span class="tag">{{ tag.name }}</span>{% if not loop.last %}, {% endif %}{% endfor %}
+    {% else %}
+      Sin etiquetas
+    {% endif %}
+  </p>
   <p>{{ question.description }}</p>
+  {% if current_user.is_authenticated and current_user.id == question.author_id %}
+    <p><a href="{{ url_for('questions.edit_question', question_id=question.id) }}">Editar pregunta</a></p>
+  {% endif %}
 </article>
 
 <section>
