@@ -2,21 +2,31 @@
    La hoja se carga desde base.html para todas las páginas. */
 
 :root {
-  --bg: #f5f7fb;
-  --surface: #ffffff;
-  --text: #1b2430;
-  --muted: #4c5666;
-  --border: #cbd5e1;
-  --primary: #1d4ed8;
-  --primary-dark: #1638a6;
-  --header-bg: #12213a;
+  --bg: #f5f7fb;           /* fondo general */
+  --bg-rainbow: linear-gradient(
+    -45deg,
+    #fd3434 0%,
+    #fc9528 16%,
+    #fdd130 33%,
+    #2fff52 50%,
+    #2da0ff 66%,
+    #2d57ff 83%,
+    #d632ff 100%
+  );
+  --surface: #ffffff;      /* tarjetas, tablas, filtros */
+  --text: #000000;         /* texto principal */
+  --muted: #858383;        /* textos secundarios */
+  --border: #ffffff;       /* bordes */
+  --primary: #d81dd8;      /* botones y enlaces */
+  --primary-dark: #a61693; /* hover */
+  --header-bg: #d81dd8;    /* cabecera oscura */
   --error: #a4262c;
   --error-bg: #fff1f0;
   --success: #16603e;
   --success-bg: #e7f6ed;
   --info-bg: #eaf1ff;
-  --radius: 12px;
-  --max-width: 72rem;
+  --radius: 12px;            /* redondez general */
+  --max-width: 72rem;        /* ancho del contenido */
 }
 
 *,
@@ -32,12 +42,27 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--bg-rainbow); /* fondo arcoíris animado */
+  background-size: 400% 400%;
+  animation: arcoiris 10s ease infinite;
+  min-height: 100vh;
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  font-family: "Fredoka", system-ui, sans-serif; /* fuente del texto */
+  font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+@keyframes arcoiris {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 a {
@@ -526,6 +551,13 @@ tbody tr:last-child td {
   color: var(--text);
 }
 
+/* Fredoka se usa en toda la página; los títulos van con más peso. */
+.brand,
+h1,
+h2 {
+  font-weight: 700;
+}
+
 /* Tablet: la navegación y los filtros se reordenan. */
 @media (max-width: 900px) {
   .site-header__inner {
@@ -641,6 +673,10 @@ tbody tr:last-child td {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  body {
+    animation: none;
   }
 
   *,
