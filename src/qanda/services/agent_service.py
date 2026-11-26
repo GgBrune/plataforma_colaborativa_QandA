@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import secrets
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
@@ -23,6 +24,7 @@ GEMINI_URL = (
 )
 LOCAL_MODEL_URL_ENV = "LOCAL_MODEL_URL"
 LOCAL_MODEL_NAME_ENV = "LOCAL_MODEL_NAME"
+EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")  # busca correos para ocultarlos
 
 
 class StrategyLLM(ABC):
@@ -64,7 +66,7 @@ class OpenAIStrategy(StrategyLLM):
     """Consume la API de OpenAI con la clave del entorno."""
 
     def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")  # clave del entorno, nunca del repo
 
     def generate(self, prompt: str) -> str:
         if not self.api_key:
@@ -77,7 +79,7 @@ class OpenAIStrategy(StrategyLLM):
             OPENAI_URL,
             data=json.dumps(payload).encode(),
             headers={
-                "Authorization": f"Bearer {self.api_key}",
+                "Authorization": f"Bearer {self.api_key}",  # clave en la cabecera, no en la URL
                 "Content-Type": "application/json",
             },
         )
@@ -93,7 +95,7 @@ class GeminiStrategy(StrategyLLM):
     """Consume la API de Gemini con la clave del entorno."""
 
     def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")  # clave del entorno, nunca del repo
 
     def generate(self, prompt: str) -> str:
         if not self.api_key:
@@ -103,7 +105,7 @@ class GeminiStrategy(StrategyLLM):
             GEMINI_URL,
             data=json.dumps(payload).encode(),
             headers={
-                "x-goog-api-key": self.api_key,
+                "x-goog-api-key": self.api_key,  # clave en la cabecera, no en la URL
                 "Content-Type": "application/json",
             },
         )
@@ -206,12 +208,17 @@ AutomaticAgent.setStrategy = _agent_set_strategy
 AutomaticAgent.set_strategy = _agent_set_strategy
 
 
+def _redact(text: str) -> str:
+    """Oculta los correos antes de enviar el prompt a un proveedor externo."""
+    return EMAIL_PATTERN.sub("[email redactado]", text)  # reemplaza el correo por texto fijo
+
+
 def build_prompt(question) -> str:
-    """Compone el prompt con los cuatro datos de la pregunta."""
-    tags = ", ".join(tag.name for tag in question.tags)
+    """Compone el prompt sin correos de los usuarios."""
+    tags = ", ".join(_redact(tag.name) for tag in question.tags)  # etiquetas sin correos
     return (
-        f"Título: {question.title}\n"
-        f"Descripción: {question.description}\n"
+        f"Título: {_redact(question.title)}\n"
+        f"Descripción: {_redact(question.description)}\n"
         f"Categoría: {question.category.value}\n"
         f"Etiquetas: {tags or 'Sin etiquetas'}\n"
     )
