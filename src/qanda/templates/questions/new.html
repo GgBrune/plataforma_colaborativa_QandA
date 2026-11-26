@@ -5,19 +5,8 @@
 {% block content %}
 <h1>Publicar pregunta</h1>
 
+{% set submit_label = "Publicar" %}
 <form method="post" action="{{ url_for('questions.new_question') }}">
-  <p>
-    <label for="title">Título</label>
-    <input id="title" name="title" type="text" required
-           maxlength="{{ question_title_max }}" value="{{ title }}">
-    {% if errors.title %}<span class="error" role="alert">{{ errors.title }}</span>{% endif %}
-  </p>
-  <p>
-    <label for="description">Descripción</label>
-    <textarea id="description" name="description" rows="8" required
-              maxlength="{{ question_description_max }}">{{ description }}</textarea>
-    {% if errors.description %}<span class="error" role="alert">{{ errors.description }}</span>{% endif %}
-  </p>
-  <button type="submit">Publicar</button>
+  {% include "questions/_form.html" %}
 </form>
 {% endblock %}
