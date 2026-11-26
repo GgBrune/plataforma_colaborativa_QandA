@@ -15,6 +15,8 @@ def app(tmp_path):
         TESTING = True
         SECRET_KEY = "test-secret"
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{tmp_path / 'test.db'}"
+        FORCE_HTTPS = False
+        SESSION_COOKIE_SECURE = False
 
     app = create_app(TestConfig)
     with app.app_context():
@@ -32,7 +34,7 @@ def client(app):
 @pytest.fixture
 def author(app):
     user = GeneralUser(email="author@example.com")
-    user.set_password("secret")
+    user.set_password("secret123")
     db.session.add(user)
     db.session.commit()
     return user

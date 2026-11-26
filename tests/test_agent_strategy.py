@@ -30,6 +30,8 @@ def app(tmp_path):
         TESTING = True
         SECRET_KEY = "test-secret"
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{tmp_path / 'test.db'}"
+        FORCE_HTTPS = False
+        SESSION_COOKIE_SECURE = False
 
     app = create_app(TestConfig)
     with app.app_context():
@@ -47,7 +49,7 @@ def client(app):
 @pytest.fixture
 def admin(app):
     user = Administrator(email="admin@example.com")
-    user.set_password("secret")
+    user.set_password("secret123")
     db.session.add(user)
     db.session.commit()
     return user
@@ -56,14 +58,14 @@ def admin(app):
 @pytest.fixture
 def general_user(app):
     user = GeneralUser(email="user@example.com")
-    user.set_password("secret")
+    user.set_password("secret123")
     db.session.add(user)
     db.session.commit()
     return user
 
 
 def login(client, email):
-    response = client.post("/login", data={"email": email, "password": "secret"})
+    response = client.post("/login", data={"email": email, "password": "secret123"})
     assert response.status_code == 302
 
 
