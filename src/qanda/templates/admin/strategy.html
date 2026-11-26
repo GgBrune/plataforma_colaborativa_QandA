@@ -6,17 +6,21 @@
 <h1>Estrategia LLM del agente</h1>
 <p>Estrategia actual: {{ current_strategy }}</p>
 
-{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
-
-<form method="post" action="{{ url_for('admin.configurar_estrategia') }}">
-  <p>
+<form class="form" method="post" action="{{ url_for('admin.configurar_estrategia') }}" novalidate>
+  <div class="field{% if error %} field--invalid{% endif %}">
     <label for="strategy">Proveedor de LLM</label>
-    <select id="strategy" name="strategy" required>
+    <select id="strategy" name="strategy" required
+            aria-describedby="strategy-hint{% if error %} strategy-error{% endif %}"
+            {% if error %}aria-invalid="true"{% endif %}>
       {% for value, label in strategies %}
-      <option value="{{ value }}" {% if value == current_strategy %}selected{% endif %}>{{ label }}</option>
+        <option value="{{ value }}" {% if value == current_strategy %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-  </p>
-  <button type="submit">Guardar estrategia</button>
+    <small class="field-hint" id="strategy-hint">Elegí el proveedor que usará el agente para responder automáticamente.</small>
+    {% if error %}<p class="field-error" id="strategy-error" role="alert">{{ error }}</p>{% endif %}
+  </div>
+  <div class="form-actions">
+    <button type="submit">Guardar estrategia</button>
+  </div>
 </form>
 {% endblock %}

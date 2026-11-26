@@ -6,7 +6,7 @@
 <h1>Publicar pregunta</h1>
 
 {% set submit_label = "Publicar" %}
-<form method="post" action="{{ url_for('questions.new_question') }}">
+<form class="question-form" method="post" action="{{ url_for('questions.new_question') }}" novalidate>
   {% include "questions/_form.html" %}
 </form>
 {% endblock %}
