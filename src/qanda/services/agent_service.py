@@ -1,6 +1,7 @@
 """Respuestas automáticas generadas por un agente con patrón Strategy."""
 
 import json
+import logging
 import os
 import re
 import secrets
@@ -16,6 +17,22 @@ from qanda.services.answer_service import publish_answer
 AGENT_EMAIL = "agente.automatico@qanda.local"
 AGENT_TRIGGER_TAG = os.getenv("AGENT_TRIGGER_TAG", "ia-help").casefold().lstrip("#")
 AGENT_DELAY_HOURS = float(os.getenv("AGENT_DELAY_HOURS", "24"))
+AGENT_MAX_ATTEMPTS = max(1, int(os.getenv("AGENT_MAX_ATTEMPTS", "3")))
+
+logger = logging.getLogger(__name__)
+
+
+class AgentGenerationError(RuntimeError):
+    """Se agotaron los intentos de generación con el proveedor configurado."""
+
+    def __init__(self, attempts: int, last_error: Exception | None = None):
+        self.attempts = attempts
+        self.last_error = last_error
+        super().__init__(
+            "No se pudo generar la respuesta automática después de "
+            f"{attempts} intentos. Probá de nuevo más tarde."
+        )
+
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 GEMINI_URL = (
@@ -66,7 +83,9 @@ class OpenAIStrategy(StrategyLLM):
     """Consume la API de OpenAI con la clave del entorno."""
 
     def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")  # clave del entorno, nunca del repo
+        self.api_key = api_key or os.getenv(
+            "OPENAI_API_KEY"
+        )  # clave del entorno, nunca del repo
 
     def generate(self, prompt: str) -> str:
         if not self.api_key:
@@ -95,7 +114,9 @@ class GeminiStrategy(StrategyLLM):
     """Consume la API de Gemini con la clave del entorno."""
 
     def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")  # clave del entorno, nunca del repo
+        self.api_key = api_key or os.getenv(
+            "GEMINI_API_KEY"
+        )  # clave del entorno, nunca del repo
 
     def generate(self, prompt: str) -> str:
         if not self.api_key:
@@ -210,12 +231,16 @@ AutomaticAgent.set_strategy = _agent_set_strategy
 
 def _redact(text: str) -> str:
     """Oculta los correos antes de enviar el prompt a un proveedor externo."""
-    return EMAIL_PATTERN.sub("[email redactado]", text)  # reemplaza el correo por texto fijo
+    return EMAIL_PATTERN.sub(
+        "[email redactado]", text
+    )  # reemplaza el correo por texto fijo
 
 
 def build_prompt(question) -> str:
     """Compone el prompt sin correos de los usuarios."""
-    tags = ", ".join(_redact(tag.name) for tag in question.tags)  # etiquetas sin correos
+    tags = ", ".join(
+        _redact(tag.name) for tag in question.tags
+    )  # etiquetas sin correos
     return (
         f"Título: {_redact(question.title)}\n"
         f"Descripción: {_redact(question.description)}\n"
@@ -235,11 +260,35 @@ def get_agent_author() -> AutomaticAgent:
     return agent
 
 
+def generate_with_retries(author, prompt: str, attempts: int | None = None) -> str:
+    """Genera el texto reintentando ante fallos del proveedor, con un límite."""
+    attempts = AGENT_MAX_ATTEMPTS if attempts is None else max(1, attempts)
+    last_error: Exception | None = None
+
+    for attempt in range(1, attempts + 1):
+        try:
+            body = author.generate(prompt)
+            if not isinstance(body, str) or not body.strip():
+                raise RuntimeError("El proveedor devolvió una respuesta vacía.")
+            return body.strip()
+        except Exception as exc:  # noqa: BLE001 - se reintenta cualquier fallo del proveedor
+            last_error = exc
+            logger.warning(
+                "Fallo el intento %s/%s de generación automática: %s",
+                attempt,
+                attempts,
+                exc,
+            )
+
+    raise AgentGenerationError(attempts, last_error) from last_error
+
+
 def generate_answer_for(question) -> Answer:
-    """Genera una respuesta del agente para la pregunta."""
+    """Genera una respuesta del agente para la pregunta, tolerando fallos del LLM."""
     author = get_agent_author()
     prompt = build_prompt(question)
-    return publish_answer(author.generate(prompt), question, author)
+    body = generate_with_retries(author, prompt)
+    return publish_answer(body, question, author)
 
 
 def _has_trigger_tag(question) -> bool:
