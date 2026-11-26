@@ -21,6 +21,20 @@ Modelar una plataforma de preguntas y respuestas destinada a estudiantes. Utiliz
 - `SECRET_KEY` debe configurarse con un valor aleatorio: la clave de desarrollo se rechaza fuera de las pruebas para impedir la falsificación de sesiones.
 - Variables de entorno: `SECRET_KEY`, `DATABASE_URL`, `FORCE_HTTPS` (por defecto `1`), `HSTS_MAX_AGE` (por defecto `31536000`) y `TRUST_PROXY` (activar solo detrás de un proxy que termine TLS y envíe `X-Forwarded-Proto`). La plantilla está en `.env.example`; las variables deben exportarse en el entorno de despliegue.
 
+## Usabilidad y accesibilidad
+
+- **Diseño adaptable:** la hoja `src/qanda/static/css/styles.css` usa una cuadrícula
+  flexible y dos breakpoints: tablet (`max-width: 900px`) y móvil (`max-width: 600px`).
+  La navegación se apila, los filtros pasan a una columna y la tabla de usuarios se
+  convierte en tarjetas con etiquetas visibles en pantallas chicas.
+- **Navegación por teclado:** enlace "Saltar al contenido principal", foco visible
+  con `:focus-visible` y respeto por `prefers-reduced-motion`.
+- **Mensajes claros:** los errores de validación se muestran en un resumen con enlaces
+  a cada campo y, además, junto al control inválido (`aria-invalid`, `aria-describedby`
+  y `role="alert"`). Los avisos flash indican si son errores, éxitos o avisos
+  mediante texto y no solo color. Las páginas 403, 404 y 500 explican qué ocurrió y
+  ofrecen un enlace para volver al listado.
+
 ## Decisiones de diseño
 ### 1. Patrón Strategy 
 - Elegimos el patrón Strategy porque las respuestas automáticas pueden ser generadas por distintos *Proveedores de LLM*. 

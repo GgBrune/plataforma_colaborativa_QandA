@@ -1,6 +1,6 @@
 from urllib.parse import urlsplit, urlunsplit
 
-from flask import Flask, redirect, request
+from flask import Flask, redirect, render_template, request, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from qanda.commands import create_admin
@@ -67,5 +67,52 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp)
     app.register_blueprint(questions_bp)
     app.cli.add_command(create_admin)
+
+    @app.get("/")
+    def index():
+        """Punto de entrada único: lleva al listado de preguntas."""
+        return redirect(url_for("questions.list_questions"))
+
+    @app.errorhandler(403)
+    def forbidden(error):
+        return (
+            render_template(
+                "errors/error.html",
+                code=403,
+                title="Acceso no permitido",
+                message=(
+                    "No tenés permiso para ver esta página. "
+                    "Si creés que se trata de un error, contactá al administrador."
+                ),
+            ),
+            403,
+        )
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return (
+            render_template(
+                "errors/error.html",
+                code=404,
+                title="No encontramos esa página",
+                message=(
+                    "Puede que el enlace esté desactualizado. "
+                    "Probá de nuevo o volvé al listado de preguntas."
+                ),
+            ),
+            404,
+        )
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return (
+            render_template(
+                "errors/error.html",
+                code=500,
+                title="Ocurrió un problema inesperado",
+                message="Intentá de nuevo en unos minutos. Tu última acción no se completó.",
+            ),
+            500,
+        )
 
     return app

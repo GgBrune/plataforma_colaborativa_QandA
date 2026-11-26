@@ -1,31 +1,57 @@
-  <p>
+{% set field_labels = {
+  'title': 'Título',
+  'description': 'Descripción',
+  'category': 'Categoría',
+  'tags': 'Etiquetas'
+} %}
+{% include "questions/_error_summary.html" %}
+
+<div class="form">
+  <div class="field{% if errors.title %} field--invalid{% endif %}">
     <label for="title">Título</label>
     <input id="title" name="title" type="text" required
-           maxlength="{{ question_title_max }}" value="{{ title }}">
-    {% if errors.title %}<span class="error" role="alert">{{ errors.title }}</span>{% endif %}
-  </p>
-  <p>
+           maxlength="{{ question_title_max }}" value="{{ title }}"
+           aria-describedby="title-hint{% if errors.title %} title-error{% endif %}"
+           {% if errors.title %}aria-invalid="true"{% endif %}>
+    <small class="field-hint" id="title-hint">Escribí un título breve y claro. Máximo {{ question_title_max }} caracteres.</small>
+    {% if errors.title %}<p class="field-error" id="title-error">{{ errors.title }}</p>{% endif %}
+  </div>
+
+  <div class="field{% if errors.description %} field--invalid{% endif %}">
     <label for="description">Descripción</label>
     <textarea id="description" name="description" rows="8" required
-              maxlength="{{ question_description_max }}">{{ description }}</textarea>
-    {% if errors.description %}<span class="error" role="alert">{{ errors.description }}</span>{% endif %}
-  </p>
-  <p>
+              maxlength="{{ question_description_max }}"
+              aria-describedby="description-hint{% if errors.description %} description-error{% endif %}"
+              {% if errors.description %}aria-invalid="true"{% endif %}>{{ description }}</textarea>
+    <small class="field-hint" id="description-hint">Contá qué necesitás saber. Máximo {{ question_description_max }} caracteres.</small>
+    {% if errors.description %}<p class="field-error" id="description-error">{{ errors.description }}</p>{% endif %}
+  </div>
+
+  <div class="field{% if errors.category %} field--invalid{% endif %}">
     <label for="category">Categoría</label>
-    <select id="category" name="category" required>
+    <select id="category" name="category" required
+            aria-describedby="category-hint{% if errors.category %} category-error{% endif %}"
+            {% if errors.category %}aria-invalid="true"{% endif %}>
       <option value="" disabled {% if not category %}selected{% endif %}>Seleccioná una categoría</option>
       {% for value, label in categories %}
         <option value="{{ value }}" {% if category == value %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-    {% if errors.category %}<span class="error" role="alert">{{ errors.category }}</span>{% endif %}
-  </p>
-  <p>
+    <small class="field-hint" id="category-hint">Elegí la categoría que mejor describa la pregunta.</small>
+    {% if errors.category %}<p class="field-error" id="category-error">{{ errors.category }}</p>{% endif %}
+  </div>
+
+  <div class="field{% if errors.tags %} field--invalid{% endif %}">
     <label for="tags">Etiquetas</label>
     <input id="tags" name="tags" type="text"
-           value="{{ tags }}" placeholder="Ej.: python, flask, bases de datos">
-    <small>Separá las etiquetas con comas. Podés agregar o quitar las que quieras;
-           cada etiqueta puede tener hasta {{ tag_name_max }} caracteres.</small>
-    {% if errors.tags %}<span class="error" role="alert">{{ errors.tags }}</span>{% endif %}
-  </p>
-  <button type="submit">{{ submit_label }}</button>
+           value="{{ tags }}" placeholder="Ej.: python, flask, bases de datos"
+           aria-describedby="tags-hint{% if errors.tags %} tags-error{% endif %}"
+           {% if errors.tags %}aria-invalid="true"{% endif %}>
+    <small class="field-hint" id="tags-hint">Separá las etiquetas con comas. Podés agregar o quitar las que quieras; cada etiqueta puede tener hasta {{ tag_name_max }} caracteres.</small>
+    {% if errors.tags %}<p class="field-error" id="tags-error">{{ errors.tags }}</p>{% endif %}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit">{{ submit_label }}</button>
+  </div>
+</div>

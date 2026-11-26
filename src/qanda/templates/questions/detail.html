@@ -3,7 +3,7 @@
 {% block title %}{{ question.title }}{% endblock %}
 
 {% block content %}
-<article>
+<article class="card">
   <h1>{{ question.title }}</h1>
   <p><small>Publicada por {{ question.author.email }}
        el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small></p>
@@ -15,20 +15,20 @@
       Sin etiquetas
     {% endif %}
   </p>
-  <p>{{ question.description }}</p>
+  <p class="prose">{{ question.description }}</p>
   {% if current_user.is_authenticated and current_user.id == question.author_id %}
     <p><a href="{{ url_for('questions.edit_question', question_id=question.id) }}">Editar pregunta</a></p>
   {% endif %}
 </article>
 
-<section>
-  <h2>Respuestas ({{ question.answers|length }})</h2>
+<section aria-labelledby="respuestas-titulo">
+  <h2 id="respuestas-titulo">Respuestas ({{ question.answers|length }})</h2>
 
   {% if question.answers %}
-    <ul>
+    <ul class="answers-list">
       {% for answer in question.answers|sort(attribute='published_at') %}
         <li>
-          <p>{{ answer.body }}</p>
+          <p class="prose">{{ answer.body }}</p>
           <small>{{ answer.author.email }}{% if answer.is_automatic %} · generada automáticamente{% endif %} ·
                  {{ answer.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
         </li>
@@ -39,15 +39,22 @@
   {% endif %}
 
   {% if current_user.is_authenticated %}
-    <h3>Publicar una respuesta</h3>
-    <form method="post"
-          action="{{ url_for('questions.new_answer', question_id=question.id) }}">
-      <p>
+    <h3 class="section-title">Publicar una respuesta</h3>
+    {% set field_labels = {'body': 'Tu respuesta'} %}
+    {% include "questions/_error_summary.html" %}
+    <form method="post" class="form"
+          action="{{ url_for('questions.new_answer', question_id=question.id) }}" novalidate>
+      <div class="field{% if errors.body %} field--invalid{% endif %}">
         <label for="body">Tu respuesta</label>
-        <textarea id="body" name="body" rows="5" required>{{ body }}</textarea>
-        {% if errors.body %}<span class="error" role="alert">{{ errors.body }}</span>{% endif %}
-      </p>
-      <button type="submit">Publicar respuesta</button>
+        <textarea id="body" name="body" rows="5" required
+                  aria-describedby="body-hint{% if errors.body %} body-error{% endif %}"
+                  {% if errors.body %}aria-invalid="true"{% endif %}>{{ body }}</textarea>
+        <small class="field-hint" id="body-hint">Escribí una respuesta clara y concreta.</small>
+        {% if errors.body %}<p class="field-error" id="body-error">{{ errors.body }}</p>{% endif %}
+      </div>
+      <div class="form-actions">
+        <button type="submit">Publicar respuesta</button>
+      </div>
     </form>
   {% else %}
     <p><a href="{{ url_for('auth.login') }}">Iniciá sesión</a> para responder.</p>

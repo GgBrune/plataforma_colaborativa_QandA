@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="card" role="alert" aria-labelledby="estado-error-titulo">
+  <h1 id="estado-error-titulo">{{ title }}</h1>
+  <p>{{ message }}</p>
+  <p><small>Código de error: {{ code }}</small></p>
+  <p><a href="{{ url_for('questions.list_questions') }}">Volver al listado de preguntas</a></p>
+</section>
+{% endblock %}

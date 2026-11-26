@@ -4,49 +4,69 @@
 
 {% block content %}
 <h1>Preguntas</h1>
-<form method="get" action="{{ url_for('questions.list_questions') }}">
-  <label for="filter-category">Categoría</label>
-  <select id="filter-category" name="category">
-    <option value="">Todas las categorías</option>
-    {% for value, label in categories %}
-      <option value="{{ value }}"{% if filters.category == value %} selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
 
-  <label for="filter-tags">Etiquetas</label>
-  <input id="filter-tags" type="text" name="tags" value="{{ filters.tags }}" placeholder="python, flask">
+<form class="filters" method="get" action="{{ url_for('questions.list_questions') }}" role="search">
+  <fieldset>
+    <legend class="visually-hidden">Filtros de búsqueda</legend>
+    <div class="filter-field">
+      <label for="filter-category">Categoría</label>
+      <select id="filter-category" name="category">
+        <option value="">Todas las categorías</option>
+        {% for value, label in categories %}
+          <option value="{{ value }}"{% if filters.category == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-  <label for="filter-text">Título o descripción</label>
-  <input id="filter-text" type="text" name="q" value="{{ filters.q }}">
+    <div class="filter-field">
+      <label for="filter-tags">Etiquetas</label>
+      <input id="filter-tags" type="text" name="tags" value="{{ filters.tags }}" placeholder="python, flask">
+    </div>
 
-  <label for="filter-order">Orden</label>
-  <select id="filter-order" name="order">
-    <option value="desc"{% if filters.order != 'asc' %} selected{% endif %}>Más recientes primero</option>
-    <option value="asc"{% if filters.order == 'asc' %} selected{% endif %}>Más antiguos primero</option>
-  </select>
+    <div class="filter-field">
+      <label for="filter-text">Título o descripción</label>
+      <input id="filter-text" type="text" name="q" value="{{ filters.q }}">
+    </div>
 
-  <button type="submit">Filtrar</button>
-  {% if filters.active %}<a href="{{ url_for('questions.list_questions') }}">Limpiar filtros</a>{% endif %}
+    <div class="filter-field">
+      <label for="filter-order">Orden</label>
+      <select id="filter-order" name="order">
+        <option value="desc"{% if filters.order != 'asc' %} selected{% endif %}>Más recientes primero</option>
+        <option value="asc"{% if filters.order == 'asc' %} selected{% endif %}>Más antiguos primero</option>
+      </select>
+    </div>
+  </fieldset>
+
+  <div class="filter-actions">
+    <button type="submit">Filtrar</button>
+    {% if filters.active %}<a href="{{ url_for('questions.list_questions') }}">Limpiar filtros</a>{% endif %}
+  </div>
 </form>
-{% if questions %}
-  <ul>
-    {% for question in questions %}
-      <li>
-        <a href="{{ url_for('questions.question_detail', question_id=question.id) }}">
-          {{ question.title }}
-        </a>
-        <small>{{ question.category.value }} · publicada el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
-        {% if question.tags %}
-          <small>Etiquetas: {{ question.tags | map(attribute='name') | join(', ') }}</small>
-        {% endif %}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  {% if filters.active %}
-    <p>No hay preguntas que coincidan con los filtros.</p>
+
+<section aria-labelledby="resultados-titulo">
+  <h2 class="visually-hidden" id="resultados-titulo">Resultados</h2>
+  <p class="results-count" role="status">
+    {% if questions|length == 1 %}1 pregunta encontrada{% else %}{{ questions|length }} preguntas encontradas{% endif %}
+  </p>
+
+  {% if questions %}
+    <ul class="question-list">
+      {% for question in questions %}
+        <li>
+          <a href="{{ url_for('questions.question_detail', question_id=question.id) }}">{{ question.title }}</a>
+          <small>{{ question.category.value }} · publicada el {{ question.published_at.strftime('%d/%m/%Y %H:%M') }}</small>
+          {% if question.tags %}
+            <small>Etiquetas: {{ question.tags | map(attribute='name') | join(', ') }}</small>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
   {% else %}
-    <p>Todavía no hay preguntas publicadas.</p>
+    {% if filters.active %}
+      <p>No hay preguntas que coincidan con los filtros.</p>
+    {% else %}
+      <p>Todavía no hay preguntas publicadas.</p>
+    {% endif %}
   {% endif %}
-{% endif %}
+</section>
 {% endblock %}
