@@ -2,7 +2,6 @@
 name = "plataforma-colaborativa-qanda"
 version = "0.1.0"
 description = "Add your description here"
-readme = "README.md"
 authors = [
     { name = "prisci23", email = "priurbano23@gmail.com" },
     { name = "kaarigoonzzz", email = "gonzalezkari07@gmail.com" },
