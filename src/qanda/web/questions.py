@@ -1,13 +1,20 @@
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 from sqlalchemy.orm import selectinload
 
 from qanda.extensions import db
-from qanda.models import Question
-from qanda.services.agent_service import maybe_generate_answer
-from qanda.services.answer_service import AnswerValidationError, publish_answer
-from qanda.services.question_service import QuestionValidationError, publish_question
 from qanda.models import Category, Question, Tag
+from qanda.services.agent_service import AgentGenerationError, maybe_generate_answer
+from qanda.services.answer_service import AnswerValidationError, publish_answer
 from qanda.services.question_service import (
     QuestionValidationError,
     parse_tags,
@@ -82,9 +89,7 @@ def list_questions():
             None,
         )
         # Una categoría inexistente no debe mostrar todas las preguntas.
-        stmt = stmt.where(
-            Question.category == category if category else db.false()
-        )
+        stmt = stmt.where(Question.category == category if category else db.false())
 
     if tag_names:
         lowered = [name.casefold() for name in tag_names]
@@ -105,9 +110,7 @@ def list_questions():
         )
 
     published_at = (
-        Question.published_at.asc()
-        if order == "asc"
-        else Question.published_at.desc()
+        Question.published_at.asc() if order == "asc" else Question.published_at.desc()
     )
     questions = db.session.scalars(stmt.order_by(published_at)).all()
     return render_template(
@@ -152,11 +155,22 @@ def _submitted_tags():
 
 
 def _try_generate_agent_answer(question):
+    """Genera la respuesta automática sin interrumpir la funcionalidad principal."""
     try:
         maybe_generate_answer(question)
-    except Exception as exc:  # noqa: BLE001 - un fallo del agente no bloquea la publicación
+    except AgentGenerationError as exc:
         db.session.rollback()
-        flash(f"El agente no pudo generar una respuesta automática: {exc}", "error")
+        current_app.logger.exception(
+            "No se pudo generar la respuesta automática para la pregunta %s",
+            question.id,
+        )
+        flash(str(exc), "error")
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Fallo inesperado del agente para la pregunta %s", question.id
+        )
+        flash("No se pudo generar la respuesta automática.", "error")
 
 
 @questions_bp.route("/nueva", methods=["GET", "POST"])

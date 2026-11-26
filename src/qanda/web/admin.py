@@ -48,7 +48,6 @@ def cambiar_rol(user_id):
 
 
 @admin_bp.route("/estrategia", methods=["GET", "POST"])
-@login_required
 @admin_required
 def configurar_estrategia():
     """Permite al administrador elegir la estrategia LLM del agente."""
