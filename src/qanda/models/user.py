@@ -2,6 +2,7 @@ from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from qanda.extensions import db
+from qanda.security import validate_password
 
 
 class User(db.Model, UserMixin):
@@ -26,7 +27,8 @@ class User(db.Model, UserMixin):
         return self.role == "automatic_agent"
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        validate_password(password)
+        self.password_hash = generate_password_hash(password, method="scrypt")
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)

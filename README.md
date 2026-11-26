@@ -13,6 +13,14 @@ Modelar una plataforma de preguntas y respuestas destinada a estudiantes. Utiliz
 - [x] **Respuestas y autoría:** múltiples respuestas por pregunta. El autor puede ser un usuario o un agente automático.
 - [x] **Agente LLM:** genera respuestas automáticas asistidas por IA para preguntas que incluyan una etiqueta.
 
+## Seguridad de credenciales
+
+- Las contraseñas se almacenan únicamente como hash `scrypt` (`password_hash`); nunca se guardan ni se escriben en logs en texto plano.
+- Toda contraseña debe tener al menos 8 caracteres. La validación es compartida por el comando `create-admin` y el modelo `User`.
+- La aplicación exige HTTPS: redirecciona HTTP con `308`, envía la cabecera `Strict-Transport-Security` y marca las cookies de sesión como `Secure`. Las peticiones que envían datos (`POST`, `PUT`, `PATCH`, `DELETE`) por HTTP se rechazan con `403` para no reenviar credenciales que ya viajaron sin cifrar.
+- `SECRET_KEY` debe configurarse con un valor aleatorio: la clave de desarrollo se rechaza fuera de las pruebas para impedir la falsificación de sesiones.
+- Variables de entorno: `SECRET_KEY`, `DATABASE_URL`, `FORCE_HTTPS` (por defecto `1`), `HSTS_MAX_AGE` (por defecto `31536000`) y `TRUST_PROXY` (activar solo detrás de un proxy que termine TLS y envíe `X-Forwarded-Proto`). La plantilla está en `.env.example`; las variables deben exportarse en el entorno de despliegue.
+
 ## Decisiones de diseño
 ### 1. Patrón Strategy 
 - Elegimos el patrón Strategy porque las respuestas automáticas pueden ser generadas por distintos *Proveedores de LLM*. 

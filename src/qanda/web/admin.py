@@ -1,19 +1,18 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from qanda.extensions import db
 from qanda.models import User
+from qanda.services.agent_service import (
+    STRATEGY_CHOICES,
+    get_strategy_name,
+    set_strategy,
+)
 from qanda.services.user_service import (
     ROLE_LABELS,
     UserValidationError,
     change_user_role,
     list_users,
-from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
-
-from qanda.services.agent_service import (
-    STRATEGY_CHOICES,
-    get_strategy_name,
-    set_strategy,
 )
 from qanda.web.decorators import admin_required
 
@@ -46,7 +45,6 @@ def cambiar_rol(user_id):
         )
 
     return redirect(url_for("admin.listar_usuarios"))
-    return "Administration panel"
 
 
 @admin_bp.route("/estrategia", methods=["GET", "POST"])
