@@ -1,7 +1,10 @@
-from flask import Flask
+from urllib.parse import urlsplit, urlunsplit
+
+from flask import Flask, redirect, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from qanda.commands import create_admin
-from qanda.config import Config
+from qanda.config import DEVELOPMENT_SECRET_KEY, Config
 from qanda.extensions import db, login_manager
 from qanda.models import User
 from qanda.web.admin import admin_bp
@@ -17,6 +20,44 @@ def load_user(user_id):
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    secret_key = app.config.get("SECRET_KEY")
+    if (
+        not app.config.get("TESTING")
+        and (not secret_key or secret_key == DEVELOPMENT_SECRET_KEY)
+    ):
+        raise RuntimeError(
+            "SECRET_KEY no configurado: define una clave aleatoria en el entorno "
+            "para proteger las sesiones de los usuarios."
+        )
+
+    if app.config.get("TRUST_PROXY"):
+        # Detrás de un proxy TLS, el esquema real llega en X-Forwarded-Proto.
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    if app.config.get("FORCE_HTTPS"):
+
+        @app.before_request
+        def require_https():
+            if request.is_secure:
+                return None
+            if request.method not in {"GET", "HEAD", "OPTIONS"}:
+                # Un 308 reenviaría el cuerpo (con la contraseña) que ya viajó
+                # por HTTP; se rechaza la petición sin procesarla.
+                return "Las peticiones con datos solo se aceptan por HTTPS.", 403
+            _scheme, netloc, path, query, fragment = urlsplit(request.url)
+            https_url = urlunsplit(("https", netloc, path, query, fragment))
+            # 308 conserva el método y el cuerpo de los formularios POST.
+            return redirect(https_url, code=308)
+
+        @app.after_request
+        def add_hsts(response):
+            if request.is_secure:
+                max_age = app.config.get("HSTS_MAX_AGE", 31536000)
+                response.headers["Strict-Transport-Security"] = (
+                    f"max-age={max_age}; includeSubDomains"
+                )
+            return response
 
     db.init_app(app)
     login_manager.init_app(app)
